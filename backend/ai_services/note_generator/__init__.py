@@ -1,0 +1,1 @@
+# Note Generator Service init

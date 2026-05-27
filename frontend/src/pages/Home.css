@@ -1,0 +1,450 @@
+/* ===== 首页整体布局 ===== */
+.home {
+  min-height: calc(100vh - 140px);
+  padding: 2rem 0;
+}
+
+/* ===== 头部 ===== */
+.home-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.home-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 2.8rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.home-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ===== 功能卡片网格 ===== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ===== 单个功能卡片 ===== */
+.feature-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 28px;
+  padding: 2rem;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  overflow: hidden;
+  border: 1px solid rgba(189, 207, 162, 0.12);
+  box-shadow: 
+    0 4px 20px rgba(166, 159, 140, 0.08),
+    0 1px 3px rgba(166, 159, 140, 0.05);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: cardAppear 0.6s ease-out backwards;
+  animation-delay: var(--delay);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 20px 40px rgba(166, 159, 140, 0.15),
+    0 8px 16px rgba(166, 159, 140, 0.1);
+  border-color: var(--accent-color, var(--primary));
+}
+
+.feature-card:hover .card-glow {
+  opacity: 1;
+}
+
+.feature-card:hover .card-arrow {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* 卡片光效 */
+.card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at center,
+    var(--accent-color, var(--primary)) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(40px);
+}
+
+/* ===== 卡片内容 ===== */
+.card-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.card-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+}
+
+.card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+  letter-spacing: 0.03em;
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+  color: var(--accent-color, var(--primary-dark));
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.card-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 箭头 */
+.card-arrow {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-color, var(--primary));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0.7;
+  transform: translateX(10px);
+  transition: all 0.4s ease;
+  z-index: 1;
+}
+
+.feature-card:hover .card-arrow {
+  opacity: 1;
+}
+
+/* ===== 复习卡片堆叠效果 ===== */
+.feature-card-review {
+  --accent-color: #c9b8d4;
+}
+
+.review-stack {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 140px;
+  height: 90px;
+  z-index: 2;
+}
+
+.stack-card {
+  position: absolute;
+  width: 130px;
+  height: 70px;
+  background: linear-gradient(145deg, #e8e0f0 0%, #f5f0fa 100%);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 
+    0 4px 12px rgba(201, 184, 212, 0.25),
+    0 2px 4px rgba(201, 184, 212, 0.15);
+  border: 1px solid rgba(201, 184, 212, 0.3);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center bottom;
+  cursor: pointer;
+}
+
+/* 堆叠效果 - 3张卡片 */
+.stack-card:nth-child(1) {
+  --stack-offset: 0;
+  z-index: 3;
+  transform: translateY(calc(var(--stack-index) * 8px)) rotate(-4deg);
+}
+
+.stack-card:nth-child(2) {
+  --stack-offset: 1;
+  z-index: 2;
+  transform: translateY(calc(var(--stack-index) * 8px + 4px)) rotate(2deg);
+}
+
+.stack-card:nth-child(3) {
+  --stack-offset: 2;
+  z-index: 1;
+  transform: translateY(calc(var(--stack-index) * 8px + 8px)) rotate(-1deg);
+}
+
+.review-stack:hover .stack-card:nth-child(1) {
+  transform: translateY(-12px) rotate(-8deg) scale(1.05);
+  box-shadow: 0 12px 24px rgba(201, 184, 212, 0.35);
+}
+
+.review-stack:hover .stack-card:nth-child(2) {
+  transform: translateY(-6px) rotate(5deg) scale(1.02);
+  box-shadow: 0 8px 16px rgba(201, 184, 212, 0.3);
+}
+
+.review-stack:hover .stack-card:nth-child(3) {
+  transform: translateY(0px) rotate(-3deg) scale(1);
+  box-shadow: 0 4px 8px rgba(201, 184, 212, 0.2);
+}
+
+.stack-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stack-meta {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* ===== 页脚 ===== */
+.home-footer {
+  text-align: center;
+  margin-top: 3rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  animation: fadeIn 1s ease-out 0.5s backwards;
+}
+
+/* ===== 动画 ===== */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .home-title {
+    font-size: 2rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    padding: 0 0.5rem;
+  }
+  
+  .feature-card {
+    min-height: 160px;
+    padding: 1.5rem;
+  }
+  
+  .card-icon {
+    font-size: 2.2rem;
+  }
+  
+  .review-stack {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    height: auto;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .stack-card {
+    position: relative;
+    flex: 1;
+    width: auto;
+    height: auto;
+    min-height: 60px;
+    transform: none !important;
+  }
+  
+  .review-stack:hover .stack-card {
+    transform: scale(1.05) !important;
+  }
+}
+
+/* ===== 笔记轮播 ===== */
+.notes-carousel-section {
+  margin-top: 2rem;
+  overflow: hidden;
+}
+
+.carousel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+}
+
+.carousel-track-right {
+  animation: carouselScrollRight 35s linear infinite;
+}
+
+.carousel-track-left {
+  animation: carouselScrollLeft 35s linear infinite;
+}
+
+.carousel-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes carouselScrollRight {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes carouselScrollLeft {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.carousel-card {
+  flex-shrink: 0;
+  width: 200px;
+  height: 90px;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  cursor: pointer;
+  border: 1px solid rgba(189, 207, 162, 0.2);
+  box-shadow: var(--shadow-neu-out);
+  transition: all 0.3s ease;
+}
+
+.carousel-card-placeholder {
+  flex-shrink: 0;
+  width: 200px;
+  height: 90px;
+  background: var(--bg-muted);
+  border-radius: var(--radius-xl);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(189, 207, 162, 0.3);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.carousel-card:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 8px 24px rgba(166, 159, 140, 0.15),
+    0 4px 8px rgba(166, 159, 140, 0.1);
+  border-color: var(--primary);
+}
+
+.carousel-card-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.carousel-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.carousel-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carousel-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

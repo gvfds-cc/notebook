@@ -1,0 +1,564 @@
+/* ===== 复习页面整体布局 ===== */
+.review-page {
+  animation: fadeIn 0.5s ease-out;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ===== 知识卡片 ===== */
+.knowledge-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 1.5rem;
+  min-width: 280px;
+  max-width: 320px;
+  border: 1px solid rgba(189, 207, 162, 0.15);
+  box-shadow: 
+    0 4px 12px rgba(166, 159, 140, 0.08),
+    0 2px 4px rgba(166, 159, 140, 0.05);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.knowledge-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.knowledge-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 
+    0 12px 28px rgba(166, 159, 140, 0.18),
+    0 6px 12px rgba(166, 159, 140, 0.1);
+  border-color: var(--primary-light);
+}
+
+.knowledge-card:hover::before {
+  opacity: 1;
+}
+
+/* 优先级变体 */
+.knowledge-card.priority-urgent {
+  border-left: 4px solid var(--danger);
+}
+
+.knowledge-card.priority-urgent:hover {
+  border-color: var(--danger);
+  box-shadow:
+    0 12px 28px rgba(201, 168, 168, 0.2),
+    0 6px 12px rgba(201, 168, 168, 0.1);
+}
+
+.knowledge-card.priority-normal {
+  border-left: 4px solid var(--accent);
+}
+
+.knowledge-card.priority-low {
+  border-left: 4px solid var(--primary);
+}
+
+/* 优先级徽章 */
+.card-priority-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-content-area {
+  padding-right: 3rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.card-time-remaining {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.card-interval {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(189, 207, 162, 0.1);
+}
+
+/* ===== 紧急复习区域 ===== */
+.urgent-section {
+  margin-bottom: 2rem;
+}
+
+.empty-hint {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.card-scroll-container.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.urgent-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+  background: var(--bg-surface);
+  border-radius: 20px;
+  box-shadow: inset 0 2px 8px rgba(166, 159, 140, 0.08);
+}
+
+.urgent-grid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.urgent-grid::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+  border-radius: 3px;
+}
+
+.urgent-grid::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.urgent-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+.urgent-grid .knowledge-card {
+  flex-shrink: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-icon {
+  font-size: 1.3rem;
+}
+
+.section-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+/* ===== 可滚动卡片网格区域 ===== */
+.card-grid-section {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+/* 左右导航按钮 */
+.scroll-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 4px 12px rgba(166, 159, 140, 0.2),
+    0 2px 4px rgba(166, 159, 140, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  opacity: 0.9;
+}
+
+.scroll-nav-btn:hover:not(.disabled) {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+  opacity: 1;
+  box-shadow: 
+    0 6px 20px rgba(155, 143, 168, 0.35),
+    0 3px 8px rgba(155, 143, 168, 0.2);
+}
+
+.scroll-nav-btn:active:not(.disabled) {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.scroll-nav-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.scroll-nav-left {
+  left: -22px;
+}
+
+.scroll-nav-right {
+  right: -22px;
+}
+
+/* 按钮禁用状态时的视觉效果 */
+.scroll-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.card-scroll-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden; /* 禁用纵向滚动 */
+  padding: 1rem;
+  scroll-behavior: smooth;
+  cursor: grab;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  box-shadow: inset 0 2px 8px rgba(166, 159, 140, 0.08);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+  /* 确保容器高度固定，防止内容撑开导致可纵向滚动 */
+  max-height: calc(100% - 2rem);
+  align-items: stretch;
+}
+
+.card-scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.card-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 4px;
+}
+
+.card-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.card-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.grid-card-wrapper {
+  flex-shrink: 0;
+  animation: cardSlideIn 0.4s ease-out backwards;
+  animation-delay: calc(var(--index, 0) * 0.05s);
+  display: flex;
+}
+
+.grid-card-wrapper > * {
+  width: 100%;
+}
+
+.scroll-hint {
+  text-align: center;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* ===== 卡片区域章节 ===== */
+.card-section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.section-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-icon {
+  font-size: 1.1rem;
+}
+
+.section-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+/* ===== 已完成区域 ===== */
+.completed-section {
+  opacity: 0.85;
+}
+
+.completed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.completed-card {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid rgba(189, 207, 162, 0.1);
+  animation: fadeInUp 0.4s ease-out backwards;
+  animation-delay: calc(var(--index, 0) * 0.05s);
+}
+
+.completed-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.completed-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ===== 笔记弹窗 ===== */
+.note-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(74, 82, 64, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.note-modal {
+  background: var(--bg-card);
+  border-radius: 28px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(74, 82, 64, 0.3);
+  animation: modalSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(189, 207, 162, 0.15);
+}
+
+.modal-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.modal-tags {
+  padding: 1rem 2rem 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(189, 207, 162, 0.15);
+  justify-content: flex-end;
+}
+
+/* ===== 动画 ===== */
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .urgent-grid {
+    padding: 0.5rem;
+  }
+  
+  .urgent-grid .knowledge-card {
+    min-width: 260px;
+    max-width: 280px;
+  }
+  
+  .card-grid-section {
+    margin: 0 -1rem;
+  }
+  
+  .card-scroll-container {
+    border-radius: 0;
+  }
+  
+  .completed-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .note-modal-overlay {
+    padding: 1rem;
+  }
+  
+  .note-modal {
+    max-height: 90vh;
+    border-radius: 20px;
+  }
+  
+  .modal-header,
+  .modal-content,
+  .modal-actions {
+    padding: 1rem 1.5rem;
+  }
+}
