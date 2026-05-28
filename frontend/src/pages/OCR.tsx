@@ -8,6 +8,7 @@ export default function OCR() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [aiEnhanced, setAiEnhanced] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleFileSelect(f: File) {
@@ -96,7 +97,7 @@ export default function OCR() {
   async function handleToNote() {
     if (!result) return
     try {
-      const res = await ocrAPI.toNote(result)
+      const res = await ocrAPI.toNote(result, aiEnhanced)
       alert(`笔记创建成功！\n标题: ${res.data.title}`)
     } catch (e: any) {
       setError('转为笔记失败: ' + (e.message || '未知错误'))
@@ -185,7 +186,16 @@ export default function OCR() {
         <div className="card delay-2">
           <div className="card-header">
             <h2 className="card-title">识别结果</h2>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label className="checkbox-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={aiEnhanced}
+                  onChange={e => setAiEnhanced(e.target.checked)}
+                />
+                <span className="checkbox-custom"></span>
+                AI 增强
+              </label>
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleToNote}

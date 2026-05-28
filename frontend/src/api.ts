@@ -73,8 +73,8 @@ export const ocrAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  toNote: (text: string) =>
-    api.post<{ id: string; title: string; message: string }>('/ocr/to-note', { text }),
+  toNote: (text: string, aiEnhanced: boolean = true) =>
+    api.post<{ id: string; title: string; message: string }>('/ocr/to-note', { text, ai_enhanced: aiEnhanced }),
 }
 
 // 系统设置

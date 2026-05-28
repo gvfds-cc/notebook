@@ -92,6 +92,7 @@ async def ocr_demo(file: UploadFile = File(...)):
 
 class OcrToNoteRequest(BaseModel):
     text: str
+    ai_enhanced: bool = True
 
 
 @router.post("/ocr/to-note")
@@ -106,67 +107,41 @@ async def ocr_to_note(data: OcrToNoteRequest):
     tags = ["PPT"]
 
     md_content = raw_text
-    try:
-        cfg_session = get_session()
+    if data.ai_enhanced:
         try:
-            from app.models.database import UserConfig
+            cfg_session = get_session()
+            try:
+                from app.models.database import UserConfig
 
-            def _get_cfg(key: str) -> str | None:
-                c = cfg_session.query(UserConfig).filter(UserConfig.key == key).first()
-                return c.value if c else None
+                def _get_cfg(key: str) -> str | None:
+                    c = cfg_session.query(UserConfig).filter(UserConfig.key == key).first()
+                    return c.value if c else None
 
-            api_key = _get_cfg("llm_api_key")
-            base_url = _get_cfg("llm_base_url") or "https://api.deepseek.com/v1"
-            model = _get_cfg("llm_model") or "deepseek-chat"
-        finally:
-            cfg_session.close()
+                api_key = _get_cfg("llm_api_key")
+                base_url = _get_cfg("llm_base_url") or "https://api.deepseek.com/v1"
+                model = _get_cfg("llm_model") or "deepseek-chat"
+            finally:
+                cfg_session.close()
 
-        if api_key:
-            import openai
-            client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=120)
-
-            prompt = f"""你现在需要根据用户提供的录音转文字内容，在整篇 Markdown 笔记最开头自动生成一张放射式思维导图，严格遵守以下规则：
-
-1. 思维导图必须使用标准 mermaid mindmap 语法，仅输出可网页渲染的纯净代码，不解释、不额外文字、不报错格式。
-
-2. 结构固定 三级结构：总主题 → 二级大模块 → 三级核心知识点。
-
-3. 思维导图内容必须高度概括整篇笔记全文，提取重点框架，不冗余、不遗漏核心考点。
-
-4. 样式为中心放射树状思维导图，适配网页端 Mermaid 渲染器，可直接在浏览器页面渲染显示。
-
-5. 思维导图代码结束后，正常输出完整结构化 Markdown 笔记正文。
-
-6. 禁止使用 graph 图表、禁止 ASCII 树、禁止普通标题列表，只允许 mindmap 放射脑图。
-
-用户输入内容：
-{raw_text}"""
-
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=4000,
-                temperature=0.7,
-            )
-            md_content = response.choices[0].message.content
-            in_mermaid_block = False
-            for line in md_content.split("\n"):
-                stripped = line.strip()
-                if stripped.startswith("```"):
-                    in_mermaid_block = not in_mermaid_block
-                    continue
-                if in_mermaid_block:
-                    continue
-                if not stripped:
-                    continue
-                if stripped.startswith("#"):
-                    title = stripped.lstrip("#").strip()[:100]
-                    break
-                if stripped.startswith("mindmap") or stripped.startswith("root") or stripped.startswith("  "):
-                    continue
-    except Exception as ai_err:
-        md_content = raw_text
-        title = lines[0][:100] if lines else "PPT 识别笔记"
+            if api_key:
+                from ai_services.note_generator.service import NoteGenerator
+                generator = NoteGenerator()
+                result = generator.enhance_via_openai(
+                    api_key=api_key,
+                    base_url=base_url,
+                    model=model,
+                    title=title,
+                    content=raw_text,
+                )
+                md_content = result["content"]
+                title = result["title"]
+                logger.info(f"OCR 笔记 AI 增强完成")
+            else:
+                logger.warning("OCR 转笔记：未配置 API Key，跳过 AI 增强")
+        except Exception as e:
+            logger.error(f"OCR 笔记 AI 增强失败: {e}", exc_info=True)
+            md_content = raw_text
+            title = lines[0][:100] if lines else "PPT 识别笔记"
 
     session = get_session()
     try:
