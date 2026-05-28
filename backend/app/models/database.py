@@ -43,6 +43,8 @@ class RecordingSession(Base):
     fused_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     note_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("notes.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="pending")
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    progress_message: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     processing_started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -121,3 +123,25 @@ def init_db():
             conn.commit()
     except Exception:
         pass  # 列已存在，忽略
+    # 迁移：确保 progress 列存在
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                __import__('sqlalchemy').text(
+                    "ALTER TABLE recording_sessions ADD COLUMN progress INTEGER DEFAULT 0"
+                )
+            )
+            conn.commit()
+    except Exception:
+        pass
+    # 迁移：确保 progress_message 列存在
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                __import__('sqlalchemy').text(
+                    "ALTER TABLE recording_sessions ADD COLUMN progress_message VARCHAR(200)"
+                )
+            )
+            conn.commit()
+    except Exception:
+        pass

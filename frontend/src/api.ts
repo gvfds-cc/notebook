@@ -25,15 +25,13 @@ export const recordAPI = {
   start: (title?: string) => api.post<RecordingSession>('/record/start', { title }),
   stop: (id: string) => api.post<RecordingSession>(`/record/stop/${id}`),
   process: (id: string) => api.post<{ message: string; status: string; session_id: string; started_at?: string }>(`/record/process/${id}`),
-  getTaskStatus: (id: string) => api.get<{ session_id: string; status: string; is_processing: boolean; processing_started_at?: string; processed_at?: string; note_id?: string }>(`/record/task-status/${id}`),
+  getTaskStatus: (id: string) => api.get<{ session_id: string; status: string; is_processing: boolean; progress: number; progress_message?: string; processing_started_at?: string; processed_at?: string; note_id?: string; fused_data?: string }>(`/record/task-status/${id}`),
   delete: (id: string) => api.delete(`/record/${id}`),
   resetStuck: () => api.post<{ message: string }>('/record/reset-stuck'),
   uploadAudio: (id: string, blob: Blob) => {
     const formData = new FormData()
     formData.append('file', blob, `${id}.webm`)
-    return api.post(`/record/${id}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post(`/record/${id}/upload`, formData)
   },
   saveTranscript: (id: string, text: string) => {
     return api.post(`/record/${id}/transcript`, { text })
@@ -43,9 +41,7 @@ export const recordAPI = {
     formData.append('file', file)
     if (title) formData.append('title', title)
     if (transcript) formData.append('transcript', transcript)
-    return api.post<RecordingSession>('/record/import-audio', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post<RecordingSession>('/record/import-audio', formData)
   },
 }
 
@@ -69,12 +65,10 @@ export const ocrAPI = {
   recognize: (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    return api.post<{ text: string } | { error: string }>('/ocr/demo', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post<{ text: string } | { error: string }>('/ocr/demo', formData)
   },
   toNote: (text: string, aiEnhanced: boolean = true) =>
-    api.post<{ id: string; title: string; message: string }>('/ocr/to-note', { text, ai_enhanced: aiEnhanced }),
+    api.post<{ id: string; title: string; message: string; ai_enhanced_applied: boolean; ai_enhanced_message: string }>('/ocr/to-note', { text, ai_enhanced: aiEnhanced }),
 }
 
 // 系统设置
@@ -109,6 +103,8 @@ export interface RecordingSession {
   fused_data?: string
   note_id?: string
   status: string
+  progress: number
+  progress_message?: string
   created_at: string
   processed_at?: string
   processing_started_at?: string

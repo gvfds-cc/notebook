@@ -49,6 +49,8 @@ class RecordingSessionResponse(RecordingSessionBase):
     fused_data: Optional[str] = None
     note_id: Optional[str] = None
     status: str
+    progress: int = 0
+    progress_message: Optional[str] = None
     created_at: datetime
     processed_at: Optional[datetime] = None
     processing_started_at: Optional[datetime] = None

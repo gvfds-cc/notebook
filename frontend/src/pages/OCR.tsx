@@ -6,6 +6,7 @@ export default function OCR() {
   const [preview, setPreview] = useState<string>('')
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
+  const [converting, setConverting] = useState(false)
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [aiEnhanced, setAiEnhanced] = useState(true)
@@ -95,12 +96,24 @@ export default function OCR() {
   }
 
   async function handleToNote() {
-    if (!result) return
+    if (!result || converting) return
+    setConverting(true)
+    setError('')
     try {
       const res = await ocrAPI.toNote(result, aiEnhanced)
-      alert(`笔记创建成功！\n标题: ${res.data.title}`)
+      let msg = `✅ 笔记创建成功！\n标题: ${res.data.title}`
+      if (aiEnhanced) {
+        if (res.data.ai_enhanced_applied) {
+          msg += '\n\nAI 增强已完成（含思维导图）'
+        } else {
+          msg += `\n\n⚠️ AI 增强未生效：${res.data.ai_enhanced_message || '请检查 API 配置'}`
+        }
+      }
+      alert(msg)
     } catch (e: any) {
       setError('转为笔记失败: ' + (e.message || '未知错误'))
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -199,17 +212,31 @@ export default function OCR() {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleToNote}
+                disabled={converting}
               >
-                📝 转为笔记
+                {converting ? '⏳ 正在转为笔记...' : '📝 转为笔记'}
               </button>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => navigator.clipboard.writeText(result)}
+                disabled={converting}
               >
                 复制文本
               </button>
             </div>
           </div>
+
+          {converting && (
+            <div className="progress-container" style={{ padding: '0 1rem' }}>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: '100%', animation: 'pulse 1.5s infinite' }}></div>
+              </div>
+              <p className="progress-text">
+                {aiEnhanced ? 'AI 正在生成思维导图和结构化笔记...' : '正在保存笔记...'}
+              </p>
+            </div>
+          )}
+
           <div className="result-box">
             <pre>{result}</pre>
           </div>

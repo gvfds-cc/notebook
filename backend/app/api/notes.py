@@ -72,6 +72,8 @@ async def create_note(data: NoteCreate):
             raise HTTPException(status_code=409, detail="笔记已存在，请勿重复创建")
 
         content = data.content
+        ai_enhanced_applied = False
+        ai_enhanced_message = ""
 
         # AI 增强
         if data.ai_enhanced and data.content.strip():
@@ -90,12 +92,14 @@ async def create_note(data: NoteCreate):
                         content=data.content,
                     )
                     content = result["content"]
+                    ai_enhanced_applied = True
                     logger.info(f"笔记 AI 增强完成: {data.title}")
                 else:
                     logger.warning("AI 增强跳过：未配置 API Key")
+                    ai_enhanced_message = "未配置 API Key，跳过 AI 增强"
             except Exception as e:
                 logger.error(f"AI 增强失败: {e}")
-                # 增强失败时保留原始内容
+                ai_enhanced_message = f"AI 增强失败: {str(e)}"
 
         note = Note(
             title=data.title,
@@ -106,7 +110,10 @@ async def create_note(data: NoteCreate):
         session.add(note)
         session.commit()
         session.refresh(note)
-        return _note_to_dict(note)
+        result = _note_to_dict(note)
+        result["ai_enhanced_applied"] = ai_enhanced_applied
+        result["ai_enhanced_message"] = ai_enhanced_message
+        return result
     except HTTPException:
         raise
     except Exception as e:

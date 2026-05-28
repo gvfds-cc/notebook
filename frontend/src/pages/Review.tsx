@@ -447,27 +447,8 @@ export default function Review() {
 
   const completedTasks = tasks.filter(t => t.status === 'completed' || t.status === 'skipped')
   
-  // 紧急复习必须始终显示5个任务，不足时从普通复习补充
-  const urgentReviewCount = 5
-  let displayUrgentTasks = urgentTasks.slice(0, urgentReviewCount)
-  let remainingNormalTasks = [...normalTasksRaw]
-  
-  if (displayUrgentTasks.length < urgentReviewCount) {
-    // 从普通复习中按时间排序补充（越紧急的越优先）
-    const sortedNormalTasks = [...normalTasksRaw].sort((a, b) => {
-      const aTime = new Date(a.scheduled_time).getTime()
-      const bTime = new Date(b.scheduled_time).getTime()
-      return aTime - bTime
-    })
-
-    const needed = urgentReviewCount - displayUrgentTasks.length
-    const supplementTasks = sortedNormalTasks.slice(0, needed)
-    displayUrgentTasks = [...displayUrgentTasks, ...supplementTasks]
-
-    // 从 remainingNormalTasks 中移除已补充的任务
-    const supplementIds = new Set(supplementTasks.map(t => t.id))
-    remainingNormalTasks = normalTasksRaw.filter(t => !supplementIds.has(t.id))
-  }
+  const displayUrgentTasks = urgentTasks
+  const remainingNormalTasks = normalTasksRaw
 
   return (
     <div className="review-page">
@@ -597,7 +578,7 @@ export default function Review() {
             <span className="section-count">{completedTasks.length} 项</span>
           </div>
           <div className="completed-grid">
-            {completedTasks.slice(0, 6).map((task, index) => (
+            {completedTasks.map((task, index) => (
               <div 
                 key={task.id} 
                 className="completed-card"

@@ -99,10 +99,14 @@ export default function Record() {
   const [showImport, setShowImport] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
+  // 处理进度追踪
+  const [progressMap, setProgressMap] = useState<Record<string, { progress: number; message: string }>>({})
+
   const recognitionRef = useRef<any>(null)
   const finalTranscriptRef = useRef('')
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const processingRequestsRef = useRef<Set<string>>(new Set())
 
   // 页面加载时初始化
   useEffect(() => {
@@ -154,6 +158,19 @@ export default function Record() {
           })
         )
 
+        // 更新进度
+        updateResults.forEach(result => {
+          if (result && result.status === 'processing') {
+            setProgressMap(prev => ({
+              ...prev,
+              [result.id]: {
+                progress: result.progress || 0,
+                message: result.progress_message || '处理中...'
+              }
+            }))
+          }
+        })
+
         // 更新 sessions 状态
         setSessions(prev => {
           const sessionMap = new Map(prev.map(s => [s.id, s]))
@@ -165,13 +182,15 @@ export default function Record() {
               if (existing && (
                 existing.status !== result.status ||
                 existing.processed_at !== result.processed_at ||
-                existing.note_id !== result.note_id
+                existing.note_id !== result.note_id ||
+                existing.fused_data !== result.fused_data
               )) {
                 sessionMap.set(result.id, {
                   ...existing,
                   status: result.status,
                   processed_at: result.processed_at,
                   note_id: result.note_id,
+                  fused_data: result.fused_data,
                 })
                 hasChanges = true
               }
@@ -190,6 +209,12 @@ export default function Record() {
               setProcessingIds(prev => {
                 const next = new Set(prev)
                 next.delete(r.id)
+                return next
+              })
+              // 清理进度
+              setProgressMap(prev => {
+                const next = { ...prev }
+                delete next[r.id]
                 return next
               })
             }
@@ -319,6 +344,9 @@ export default function Record() {
   }
 
   async function processSession(id: string) {
+    if (processingRequestsRef.current.has(id)) return
+    processingRequestsRef.current.add(id)
+
     // 立即更新本地状态为处理中，不阻塞 UI
     setSessions(prev => prev.map(s => 
       s.id === id ? { ...s, status: 'processing' as const, processing_started_at: new Date().toISOString() } : s
@@ -334,6 +362,8 @@ export default function Record() {
       console.error('处理请求失败:', e)
       // 不立即回滚，让轮询继续尝试获取状态
       startPolling()
+    } finally {
+      processingRequestsRef.current.delete(id)
     }
   }
 
@@ -620,6 +650,11 @@ export default function Record() {
                       </span>
                     )}
                   </div>
+                  {session.status === 'failed' && session.fused_data && (
+                    <div className="session-error-detail">
+                      {session.fused_data}
+                    </div>
+                  )}
                 </div>
                 <div className="session-actions" onClick={e => e.stopPropagation()}>
                   {session.status === 'pending' && !processingIds.has(session.id) && (
@@ -630,7 +665,34 @@ export default function Record() {
                       处理
                     </button>
                   )}
-                  {session.status === 'processing' && !isSessionStuck(session) && (
+                  {session.status === 'processing' && !isSessionStuck(session) && progressMap[session.id] && (
+                    <div style={{ minWidth: '160px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {progressMap[session.id]?.message || '处理中...'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+                          {progressMap[session.id]?.progress || 0}%
+                        </span>
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '6px',
+                        background: 'var(--bg-muted)',
+                        borderRadius: '3px',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${progressMap[session.id]?.progress || 0}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+                          borderRadius: '3px',
+                          transition: 'width 0.5s ease',
+                        }} />
+                      </div>
+                    </div>
+                  )}
+                  {session.status === 'processing' && !isSessionStuck(session) && !progressMap[session.id] && (
                     <button className="btn btn-secondary btn-sm" disabled>
                       <span className="processing-spinner"></span>
                       处理中
@@ -687,14 +749,50 @@ export default function Record() {
       )}
 
       {/* 后台处理提示 - 非阻塞式 */}
-      {processingIds.size > 0 && sessions.some(s => s.status === 'processing') && (
+      {processingIds.size > 0 && (
         <div className="processing-toast">
           <div className="toast-icon">⚡</div>
           <div className="toast-content">
             <div className="toast-title">后台处理中</div>
-            <div className="toast-desc">
-              录音正在后台 AI 处理中，您可以继续浏览其他页面
-            </div>
+            {(() => {
+              const firstProcessing = Array.from(processingIds)
+                .map(id => progressMap[id])
+                .find(p => p)
+              if (firstProcessing) {
+                return (
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {firstProcessing.message}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+                        {firstProcessing.progress}%
+                      </span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '4px',
+                      background: 'rgba(255,255,255,0.2)',
+                      borderRadius: '2px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${firstProcessing.progress}%`,
+                        height: '100%',
+                        background: 'var(--primary)',
+                        borderRadius: '2px',
+                        transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <div className="toast-desc">
+                  录音正在后台 AI 处理中，您可以继续浏览其他页面
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

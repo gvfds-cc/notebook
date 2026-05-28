@@ -6,7 +6,7 @@ import os
 import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from app.models.database import RecordingSession, Note, KnowledgePoint, ReviewPlan, get_session
 from app.models.schemas import RecordingSessionCreate, RecordingSessionResponse
@@ -98,6 +98,8 @@ def _session_to_response(session: RecordingSession) -> RecordingSessionResponse:
         fused_data=session.fused_data,
         note_id=session.note_id,
         status=session.status,
+        progress=session.progress,
+        progress_message=session.progress_message,
         created_at=session.created_at,
         processed_at=session.processed_at,
         processing_started_at=session.processing_started_at,
@@ -194,7 +196,7 @@ class ImportAudioInput(BaseModel):
 
 
 @router.post("/import-audio", response_model=RecordingSessionResponse)
-async def import_audio(file: UploadFile = File(...), transcript: str = "", title: str = ""):
+async def import_audio(file: UploadFile = File(...), transcript: str = Form(""), title: str = Form("")):
     """导入外部音频文件进行识别处理"""
     session = get_session()
     try:
@@ -288,6 +290,17 @@ async def reset_stuck():
     return {"message": f"已重置 {count} 个卡住的会话"}
 
 
+def _update_progress(session, record_session, progress: int, message: str):
+    """更新进度到数据库"""
+    try:
+        record_session.progress = progress
+        record_session.progress_message = message
+        session.commit()
+        print(f"[Progress] {progress}% - {message}")
+    except Exception as e:
+        print(f"[Progress Error] {e}")
+
+
 async def _execute_processing(session_id: str):
     """
     执行录课处理的核心逻辑（在后台任务中运行）
@@ -299,6 +312,8 @@ async def _execute_processing(session_id: str):
             print(f"[Processing] 会话 {session_id} 不存在")
             return
 
+        _update_progress(session, record_session, 1, "正在准备...")
+
         api_key = _get_config(session, "llm_api_key")
         base_url = _get_config(session, "llm_base_url") or "https://api.deepseek.com/v1"
         model = _get_config(session, "llm_model") or "deepseek-chat"
@@ -306,22 +321,59 @@ async def _execute_processing(session_id: str):
         if not api_key:
             print(f"[Processing] 会话 {session_id} 缺少 API Key")
             record_session.status = "failed"
+            record_session.progress = 0
+            record_session.progress_message = "缺少 API Key"
             record_session.processing_started_at = None
+            record_session.fused_data = "处理失败：未配置 API Key，请在「系统设置」中配置 LLM API Key"
             session.commit()
             return
 
         asr_text = record_session.asr_result or ""
         ocr_text = record_session.ocr_result or ""
+
+        # 如果有音频文件但没有文字稿，尝试 ASR 转录
+        if not asr_text.strip() and record_session.audio_path:
+            audio_file = os.path.join(UPLOAD_DIR, record_session.audio_path)
+            if os.path.exists(audio_file):
+                try:
+                    _update_progress(session, record_session, 10, "正在识别音频内容...")
+                    from ai_services.asr.service import ASRService
+
+                    def asr_progress(pct: int, msg: str):
+                        mapped = 5 + int(pct * 0.35)
+                        _update_progress(session, record_session, mapped, msg)
+
+                    asr = ASRService(model_size="small")
+                    asr_text = await asr.recognize(audio_file, progress_cb=asr_progress)
+                    record_session.asr_result = asr_text
+                    session.commit()
+                    print(f"[Processing] Whisper 识别完成，{len(asr_text)} 字符")
+                except Exception as asr_err:
+                    print(f"[Processing] Whisper 识别失败: {asr_err}")
+                    _update_progress(session, record_session, 40, "转写完成（部分可能缺失）")
+            else:
+                print(f"[Processing] 音频文件不存在: {audio_file}")
+
         full_text = (asr_text + "\n" + ocr_text).strip()
 
         if not full_text:
+            reason = "处理失败：没有可处理的文字内容"
+            if record_session.audio_path and not asr_text.strip():
+                reason += "。导入了音频但未提供文字稿，且本地语音识别未能提取到文字内容"
+            else:
+                reason += "。请先录制音频或输入文字内容"
             print(f"[Processing] 会话 {session_id} 没有内容可处理")
             record_session.status = "failed"
+            record_session.progress = 0
+            record_session.progress_message = "没有可处理的内容"
             record_session.processing_started_at = None
+            record_session.fused_data = reason
             session.commit()
             return
 
-        print(f"[Processing] 开始处理会话 {session_id}")
+        print(f"[Processing] 开始处理会话 {session_id}，内容长度: {len(full_text)} 字")
+
+        _update_progress(session, record_session, 45, "正在 AI 生成笔记...")
 
         try:
             import openai
@@ -344,6 +396,7 @@ async def _execute_processing(session_id: str):
 用户输入内容：
 {full_text}"""
 
+            _update_progress(session, record_session, 50, "正在等待 AI 响应...")
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
@@ -351,6 +404,7 @@ async def _execute_processing(session_id: str):
                 temperature=0.7,
             )
             md_content = response.choices[0].message.content
+            _update_progress(session, record_session, 80, "AI 生成完成，正在保存...")
         except Exception as ai_err:
             err_msg = str(ai_err)
             print(f"[AI Error] 会话 {session_id}: {err_msg}")
@@ -380,20 +434,28 @@ async def _execute_processing(session_id: str):
 
         record_session.note_id = note.id
         record_session.status = "completed"
+        record_session.progress = 100
+        record_session.progress_message = "处理完成"
         record_session.processing_started_at = None
         record_session.processed_at = datetime.now()
         session.commit()
 
+        _update_progress(session, record_session, 95, "正在生成复习计划...")
         _generate_review_plan(session, note.id, md_content)
+        _update_progress(session, record_session, 100, "处理完成")
 
         print(f"[Processing] 会话 {session_id} 处理完成，笔记 ID: {note.id}")
 
     except Exception as e:
-        print(f"[Processing Error] 会话 {session_id}: {e}")
+        err_msg = str(e)
+        print(f"[Processing Error] 会话 {session_id}: {err_msg}")
         try:
             if 'record_session' in locals() and record_session:
                 record_session.status = "failed"
+                record_session.progress = 0
+                record_session.progress_message = f"处理失败: {err_msg[:100]}"
                 record_session.processing_started_at = None
+                record_session.fused_data = f"处理失败：{err_msg}"
                 session.commit()
         except:
             pass
@@ -485,9 +547,12 @@ async def get_task_status(session_id: str):
             "session_id": session_id,
             "status": record_session.status,
             "is_processing": is_processing,
+            "progress": record_session.progress,
+            "progress_message": record_session.progress_message,
             "processing_started_at": record_session.processing_started_at.isoformat() if record_session.processing_started_at else None,
             "processed_at": record_session.processed_at.isoformat() if record_session.processed_at else None,
             "note_id": record_session.note_id,
+            "fused_data": record_session.fused_data,
         }
     finally:
         session.close()

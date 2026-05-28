@@ -107,6 +107,9 @@ async def ocr_to_note(data: OcrToNoteRequest):
     tags = ["PPT"]
 
     md_content = raw_text
+    ai_enhanced_applied = False
+    ai_enhanced_message = ""
+
     if data.ai_enhanced:
         try:
             cfg_session = get_session()
@@ -135,13 +138,16 @@ async def ocr_to_note(data: OcrToNoteRequest):
                 )
                 md_content = result["content"]
                 title = result["title"]
+                ai_enhanced_applied = True
                 logger.info(f"OCR 笔记 AI 增强完成")
             else:
                 logger.warning("OCR 转笔记：未配置 API Key，跳过 AI 增强")
+                ai_enhanced_message = "未配置 API Key，跳过 AI 增强"
         except Exception as e:
             logger.error(f"OCR 笔记 AI 增强失败: {e}", exc_info=True)
             md_content = raw_text
             title = lines[0][:100] if lines else "PPT 识别笔记"
+            ai_enhanced_message = f"AI 增强失败: {str(e)}"
 
     session = get_session()
     try:
@@ -158,6 +164,8 @@ async def ocr_to_note(data: OcrToNoteRequest):
             "id": note.id,
             "title": note.title,
             "message": "笔记创建成功",
+            "ai_enhanced_applied": ai_enhanced_applied,
+            "ai_enhanced_message": ai_enhanced_message,
         }
     except Exception as e:
         session.rollback()

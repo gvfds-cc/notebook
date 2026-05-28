@@ -124,15 +124,23 @@ export default function Notes() {
     try {
       setIsSubmitting(true)
       setError('')
-      
+
       if (editingId) {
         await notesAPI.update(editingId, submitData)
       } else {
-        await notesAPI.create({ ...submitData, ai_enhanced: aiEnhanced })
+        const res = await notesAPI.create({ ...submitData, ai_enhanced: aiEnhanced })
+        if (aiEnhanced) {
+          const data = res.data as any
+          if (data.ai_enhanced_applied) {
+            alert('✅ 笔记创建成功！AI 增强已完成（含思维导图）')
+          } else if (data.ai_enhanced_message) {
+            alert(`⚠️ 笔记已创建，但 AI 增强未生效：${data.ai_enhanced_message}`)
+          }
+        }
         // 记录提交内容，用于后续检测重复
         setLastSubmitted({ title: submitData.title, content: submitData.content })
       }
-      
+
       setForm({ title: '', content: '', tags: '' })
       setAiEnhanced(false)
       setShowForm(false)
@@ -356,9 +364,17 @@ export default function Notes() {
                 </span>
               </div>
             )}
+            {isSubmitting && aiEnhanced && !editingId && (
+              <div className="progress-container" style={{ marginBottom: '1rem' }}>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: '100%', animation: 'pulse 1.5s infinite' }}></div>
+                </div>
+                <p className="progress-text">AI 正在生成思维导图和结构化笔记，请耐心等待...</p>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? '保存中...' : '保存笔记'}
+                {isSubmitting ? (aiEnhanced && !editingId ? '⏳ AI 增强中...' : '保存中...') : '保存笔记'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditingId(null); setAiEnhanced(false) }}>取消</button>
             </div>
