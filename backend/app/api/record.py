@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from app.models.database import RecordingSession, Note, KnowledgePoint, ReviewPlan, get_session
 from app.models.schemas import RecordingSessionCreate, RecordingSessionResponse
 from app.services.ai_client import AIClient
+from ai_services.note_generator.service import ENHANCEMENT_PROMPT
 import threading
 
 router = APIRouter()
@@ -379,22 +380,7 @@ async def _execute_processing(session_id: str):
             import openai
             client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=120)
 
-            prompt = f"""你现在需要根据用户提供的录音转文字内容，在整篇 Markdown 笔记最开头自动生成一张放射式思维导图，严格遵守以下规则：
-
-1. 思维导图必须使用标准 mermaid mindmap 语法，仅输出可网页渲染的纯净代码，不解释、不额外文字、不报错格式。
-
-2. 结构固定 三级结构：总主题 → 二级大模块 → 三级核心知识点。
-
-3. 思维导图内容必须高度概括整篇笔记全文，提取重点框架，不冗余、不遗漏核心考点。
-
-4. 样式为中心放射树状思维导图，适配网页端 Mermaid 渲染器，可直接在浏览器页面渲染显示。
-
-5. 思维导图代码结束后，正常输出完整结构化 Markdown 笔记正文。
-
-6. 禁止使用 graph 图表、禁止 ASCII 树、禁止普通标题列表，只允许 mindmap 放射脑图。
-
-用户输入内容：
-{full_text}"""
+            prompt = ENHANCEMENT_PROMPT.format(user_content=full_text)
 
             _update_progress(session, record_session, 50, "正在等待 AI 响应...")
             response = client.chat.completions.create(
